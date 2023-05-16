@@ -1,17 +1,6 @@
 import * as React from 'react';
-import { Viewer ,  Worker } from '@react-pdf-viewer/core';
-import { searchPlugin } from '@react-pdf-viewer/search';
-
-import '@react-pdf-viewer/core/lib/styles/index.css';
-import '@react-pdf-viewer/search/lib/styles/index.css';
-import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
-import { MinimalButton, Spinner, TextBox , Button} from '@react-pdf-viewer/core';
+import { MinimalButton, Spinner, TextBox } from '@react-pdf-viewer/core';
 import { Match, NextIcon, PreviousIcon, RenderSearchProps, SearchPlugin } from '@react-pdf-viewer/search';
-import { toolbarPlugin } from '@react-pdf-viewer/toolbar';
-import '@react-pdf-viewer/toolbar/lib/styles/index.css';
-import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
-import '@react-pdf-viewer/default-layout/lib/styles/index.css';
-
 
 const SearchStatus  = {
     NotSearchedYet:"NotSearchedYet",
@@ -19,35 +8,13 @@ const SearchStatus  = {
     FoundResults:"FoundResults",
 }
 
-
-const App = () => {
-    const fileUrl = 'test.pdf';
-    const searchPluginInstance = searchPlugin();
-    const pageNavigationPluginInstance = pageNavigationPlugin();
-    const toolbarPluginInstance = toolbarPlugin({pageNavigationPlugin:pageNavigationPluginInstance});
-    const defaultLayoutPluginInstance = defaultLayoutPlugin();
-
-
-    const { jumpToPage } = pageNavigationPluginInstance;
-
+const SearchSidebar = ({ searchPluginInstance }) => {
     const [searchStatus, setSearchStatus] = React.useState(SearchStatus.NotSearchedYet);
     const [matches, setMatches] = React.useState([]);
-    const [isDocumentReady, setIsDocumentReady] = React.useState(false);
-    const [currentKeywordIndex, setCurrentKeywordIndex] =  React.useState(0);
+    const [renderProps, setRenderProps] = React.useState(null);
+    
 
-    const searchstring = `Recently, LocalCircles found that around 49 percent of respondents of a nationwide survey
-    chose e-commerce to buy goods in the last 12 months.3 Despite the ongoing pandemic, the e-
-    commerce market has registered a growth of 36 percent year-over-year in the last quarter of
-    2020.4 The number of Active Internet Users (AIU) in India is also expected to grow to 900
-    million by 2025 compared to 622 million in 2020.5
-    Despite driving e-commerce, the pandemic has had an unprecedented socio-economic
-    adverse impact in India. It has vividly exposed the already existing economic divide within
-    the society. It has questioned our growth models and forced us to revisit our claims of
-    inclusivity and development`
-
-
-
-    const { Search , highlight } = searchPluginInstance;
+    const { Search } = searchPluginInstance;
 
     const renderMatchSample = (match) => {
         const wordsBefore = match.pageText.substr(match.startIndex - 20, 20);
@@ -72,81 +39,29 @@ const App = () => {
     };
 
     return (
-        <div
-            style={{
-                border: '1px solid rgba(0, 0, 0, .3)',
-                display: 'flex',
-                height: '100%',
-                width: '100%',
-            }}
-        >
-            <div
-                style={{
-                    borderRight: '1px solid rgba(0, 0, 0, .2)',
-                    flex: '0 0 15rem',
-                    width: '15rem',
-                }}
-            >
-                <Search>
+        <Search>
             {(renderSearchProps) => {
-                // setRenderProps(renderSearchProps);
-                const { currentMatch, keyword, setKeyword, jumpToMatch, jumpToNextMatch, jumpToPreviousMatch, search ,setTargetPages } =
+                const { currentMatch, keyword, setKeyword, jumpToMatch, jumpToNextMatch, jumpToPreviousMatch, search } =
                     renderSearchProps;
 
-                function setKeyWordFromContext(context_string){
-                  let split_keywords = context_string.split(" ");
-                  if(currentKeywordIndex == 0){
-                    setKeyword(split_keywords[0]);
-                    setCurrentKeywordIndex(0);
-                  }else{
-                    setKeyword(split_keywords[currentKeywordIndex+1]);
-                    setCurrentKeywordIndex(currentKeywordIndex++);
-                    handleSearchKeyDown({key:"Enter"});
-                  }
-                }
-
                 const handleSearchKeyDown = (e) => {
-                    console.log(" handleSearchKeyDown :: ", e.key, "    :: ",keyword);
                     if (e.key === 'Enter' && keyword) {
                         setSearchStatus(SearchStatus.Searching);
                         search().then((matches) => {
-                            if(matches.length){
-                              console.log("matches :: ",matches);
-                              setSearchStatus(SearchStatus.FoundResults);
-                              setMatches(matches);
-                              let split_context = searchstring.split(' ');
-                              let split_page_content = matches[0].pageText.split(" ");
-                              let split_page_content_keyword_index = split_page_content.findIndex(word => word ==split_context[currentKeywordIndex])
-                              
-                              let highlightKeywords = split_context.reduce((data,currentValue)=>{
-
-                                if(data.length == 0){
-                                    data.push(currentValue);
-                                }else{
-                                    let lastEntry = data[data.length-1].split(" ");
-                                    console.log("last :: ",lastEntry)
-                                    if(lastEntry.length >2){
-                                        data.push(currentValue)
-                                    }else{
-                                        lastEntry.push(currentValue)
-                                        data[data.length-1] = lastEntry.join(" ")
-                                        
-                                    }
-                                    
-                                }
-                                return data;
-                               },[]);
-                           
-                               highlight(highlightKeywords)
-                              // for(let i = split_page_content_keyword_index; i < split_context.length; i++){
-                              //   if(split_context)
-                              // }
-                            }else{
-                              setKeyWordFromContext(searchstring);
-                            }
+                            setSearchStatus(SearchStatus.FoundResults);
+                            setMatches(matches);
                         });
                     }
-                }
+                };
+
+                // fetch('www.google.com').then(response=>{
+                //     setSearchStatus(SearchStatus.Searching);
+                //     search().then((matches) => {
+                //         console.log("matches :: ",matches);
+                //         setSearchStatus(SearchStatus.FoundResults);
+                //         setMatches(matches);
+                //     });
+                // });
 
 
                 return (
@@ -161,23 +76,6 @@ const App = () => {
                     >
                         <div style={{ padding: '.5rem' }}>
                             <div style={{ position: 'relative' }}>
-
-                                <Button  onClick={()=>{
-                                  console.log("button clicked :: ")
-                                  setKeyWordFromContext(searchstring);
-                                  jumpToPage(4);
-                                  setTargetPages(target=>{ 
-                                    return target.pageIndex == 4;
-                                  });
-                                  
-                                }} > Fetch Context </Button>
-
-                                <Button  onClick={()=>{
-                                  console.log("button clicked 2:: ")
-                                  handleSearchKeyDown({key:"Enter"})
-                                }} > Get Context </Button>
-
-
                                 <TextBox
                                     placeholder="Enter to search"
                                     value={keyword}
@@ -283,26 +181,7 @@ const App = () => {
                 );
             }}
         </Search>
-            </div>
-
-            <div style={{ flex: 1 ,height:"800px", width:"700px", margin:"auto" }}>
-            <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.6.172/build/pdf.worker.js">
-                <Viewer 
-                fileUrl={fileUrl} 
-                plugins={[
-                  pageNavigationPluginInstance,
-                  searchPluginInstance,
-                  toolbarPluginInstance,
-                  defaultLayoutPluginInstance
-                ]} 
-                  onDocumentLoad={()=>{setIsDocumentReady(true)}}
-                  onPageChange={(details)=>{console.log("page was changed :: ",details)}}
-                  
-                  />
-            </Worker>
-            </div>
-        </div>
     );
 };
 
-export default App;
+export default SearchSidebar;
